@@ -25,7 +25,7 @@ class Packet(object):
         return json_packet
 
     @staticmethod
-    def decoad(self, string_packet):
+    def decode(string_packet):
         try:
             json_packet = json.loads(string_packet)
         except ValueError:
