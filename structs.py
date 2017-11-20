@@ -1,10 +1,11 @@
 import json
-_types = ['CLIENT', 'SERVER', 'GATEWAY']
+_types = ['CLIENT', 'SERVER', 'GATEWAY', 'SERVER_PROBE']
 CLIENT = 'CLIENT'
 SERVER = 'SERVER'
 GATEWAY = 'GATEWAY'
 TYPE = 'TYPE'
 PAYLOAD = 'PAYLOAD'
+SERVER_PROBE = 'SERVER_PROBE'
 
 
 class Packet(object):
@@ -14,7 +15,8 @@ class Packet(object):
         self.payload = None
 
     def add_payload(self, payload):
-        self.payload = payload
+        if payload is not None:
+            self.payload = tuple(payload)
 
     def encode(self):
         try:

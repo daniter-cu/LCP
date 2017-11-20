@@ -7,8 +7,10 @@ UDP_PORT = 8888
 
 class Gateway(object):
     def __init__(self):
-        self.clients = set()
-        self.servers = set()
+        self.clients_g = set()
+        self.servers_g = set()
+        self.clients_p2p = set()
+        self.servers_p2p = set()
 
     def run(self):
         sock = socket.socket(socket.AF_INET, # Internet
@@ -27,33 +29,35 @@ class Gateway(object):
 
     def handle_client(self, packet, addr, sock):
         print "Adding client", addr
-        if addr not in self.clients:
-            self.clients.add(addr)
+        if addr not in self.clients_g:
+            self.clients_g.add(addr)
+            self.clients_p2p.add(packet.payload)
 
         # Tell the client about all the servers
         packet = Packet(GATEWAY)
-        packet.add_payload(list(self.servers))
+        packet.add_payload(list(self.servers_p2p))
         sock.sendto(packet.encode(), addr)
 
         packet = Packet(GATEWAY)
-        packet.add_payload(list(self.clients))
-        for addr in self.servers:
+        packet.add_payload(list(self.clients_p2p))
+        for addr in self.servers_g:
             sock.sendto(packet.encode(), addr)
         return
 
     def handle_server(self, packet, addr, sock):
         print "Adding server", addr
-        if addr not in self.servers:
-            self.servers.add(addr)
+        if addr not in self.servers_g:
+            self.servers_g.add(addr)
+            self.servers_p2p.add(packet.payload)
 
         # Tell the server about all the client
         packet = Packet(GATEWAY)
-        packet.add_payload(list(self.clients))
+        packet.add_payload(list(self.clients_p2p))
         sock.sendto(packet.encode(), addr)
 
         packet = Packet(GATEWAY)
-        packet.add_payload(list(self.servers))
-        for addr in self.clients:
+        packet.add_payload(list(self.servers_p2p))
+        for addr in self.clients_g:
             sock.sendto(packet.encode(), addr)
         return
 

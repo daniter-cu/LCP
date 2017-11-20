@@ -8,6 +8,10 @@ import time
 
 from gateway import Gateway, UDP_PORT
 from structs import *
+from server import *
+from client import *
+
+GATEWAY_ADDR = ('localhost', UDP_PORT)
 
 def gateway():
     print 'Gateway started'
@@ -17,42 +21,35 @@ def gateway():
 
 def server():
     print 'Server running'
-    sock = socket.socket(socket.AF_INET, # Internet
-                          socket.SOCK_DGRAM)
-    packet = Packet(SERVER)
-    packet.payload = ('localhost', 9999)
-    sock.sendto(packet.encode() , ('localhost', UDP_PORT))
-    data, addr = sock.recvfrom(1024)
-    print "At server", data
-    p = Packet.decode(data)
-    assert p._type == GATEWAY
+    sock = LCPSocket(GATEWAY_ADDR)
+    sock.bind(('localhost', 5005))
+    sock.listen()
     return
 
 def client():
     print 'Client running'
-    sock = socket.socket(socket.AF_INET, # Internet
-                          socket.SOCK_DGRAM)
-    packet = Packet(CLIENT)
-    packet.payload = ('localhost', 9998)
-    sock.sendto(packet.encode() , ('localhost', UDP_PORT))
-    data, addr = sock.recvfrom(1024)
-    print "At client", data
-    p = Packet.decode(data)
-    assert p._type == GATEWAY
+    sock = LCPClientSocket(GATEWAY_ADDR)
+    sock.bind(('localhost', 5010))
+    sock.send("Request some stuffs")
     return
 
 if __name__ == '__main__':
     jobs = []
     g = multiprocessing.Process(target=gateway)
     g.start()
+
     p = multiprocessing.Process(target=server)
     jobs.append(p)
     p.start()
+
+    time.sleep(.5)
     p = multiprocessing.Process(target=client)
     jobs.append(p)
     p.start()
 
     for j in jobs:
-        j.join()
+        j.join(1)
+        j.terminate()
+
     time.sleep(0.5)
     g.terminate()
