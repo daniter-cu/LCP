@@ -1,5 +1,5 @@
 #!/bin/bash -e
 
-zip hello.py "$@"
+zip hello.zip "$@"
 sh lambda_create.sh
 

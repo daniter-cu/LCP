@@ -16,7 +16,9 @@ class LCPSocket(object):
 
     def bind(self, addr):
         self.server_sock.bind(addr)
-        self.recv_port = addr[1] # Store this to communicate to gateway
+        self.recv_port = self.server_sock.getsockname()[1]# Store this to communicate to gateway
+        print "Server thread adding rcv_port", self.recv_port
+
 
     def before_exit(self, *args):
         if self.gthread is not None:
@@ -60,9 +62,7 @@ class LCPSocket(object):
         self.server_sock.sendto(packet.encode(), addr)
         return data
 
-
-
-if __name__ == '__main__':
-    sock = LCPSocket(('127.0.0.1', 8888))
-    sock.bind(('127.0.0.1', 5005))
+def lambda_handler(event, context):
+    sock = LCPSocket((event['ip'], int(event['port'])))
+    sock.bind(('0.0.0.0', 0))
     sock.listen()

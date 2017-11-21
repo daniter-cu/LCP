@@ -31,7 +31,7 @@ class Gateway(object):
         print "Adding client", addr
         if addr not in self.clients_g:
             self.clients_g.add(addr)
-            self.clients_p2p.add(packet.payload)
+            self.clients_p2p.add((addr[0], packet.payload[1]))
 
         # Tell the client about all the servers
         packet = Packet(GATEWAY)
@@ -48,7 +48,7 @@ class Gateway(object):
         print "Adding server", addr
         if addr not in self.servers_g:
             self.servers_g.add(addr)
-            self.servers_p2p.add(packet.payload)
+            self.servers_p2p.add((addr[0], packet.payload[1]))
 
         # Tell the server about all the client
         packet = Packet(GATEWAY)

@@ -1,7 +1,10 @@
 import socket
 import threading
+import sys
 from structs import *
-from signal import signal, SIGTERM
+from signal import signal, SIGTERM, SIGINT
+import select
+import time
 
 class GatewayThread(threading.Thread):
     def __init__(self, server_list, gateway, gateway_sock, recv_port):
@@ -18,10 +21,20 @@ class GatewayThread(threading.Thread):
         self.gateway_sock.sendto(packet.encode(), self.gateway)
 
         while True:
-            data, _ = self.gateway_sock.recvfrom(4096)
-            packet = Packet.decode(data)
-            for addr in packet.payload:
-                self.server_list.add(tuple(addr))
+            try:
+                ready = select.select([self.gateway_sock], [], [], 1)
+            except:
+                return
+            if ready[0]:
+                try:
+                    data, _ = self.gateway_sock.recvfrom(4096)
+                except:
+                    return
+                print data
+                packet = Packet.decode(data)
+                for addr in packet.payload:
+                    self.server_list.add(tuple(addr))
+                    print "Client adding server",  addr
         print "Exiting client gateway thread"
 
 class LCPClientSocket(object):
@@ -34,23 +47,34 @@ class LCPClientSocket(object):
         # server_sock -> socket to get connections from client
         self.gateway_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.client_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.gateway_sock.setblocking(0)
 
     def bind(self, addr):
         self.client_sock.bind(addr)
-        self.recv_port = addr[1] # Store this to communicate to gateway
+        self.recv_port = self.client_sock.getsockname()[1] # Store this to communicate to gateway
+        print "THE PORT", self.recv_port
+
+    def before_exit(self, *args):
+        self.gateway_sock.close()
+        self.t.join()
+        sys.exit(-1)
 
     def send(self, msg):
         # Before we start listening we want to register with the gateway
         # This should be done in a separate thread so it can continue to listen
         # for new events
         # Once that thread is kicked off we can start listening on the recv_port
-        t = GatewayThread(self.server_list, self.gateway, self.gateway_sock, self.recv_port)
-        t.start()
+        self.t = GatewayThread(self.server_list, self.gateway, self.gateway_sock, self.recv_port)
+        self.t.start()
+        signal(SIGTERM, self.before_exit)
+        signal(SIGINT, self.before_exit)
 
         packet = Packet(CLIENT)
         packet.payload = msg
         while len(self.server_list) == 0:
-            pass
+            time.sleep(.25)
+            if not self.t.is_alive():
+                return
         self.client_sock.sendto(packet.encode(), next(iter(self.server_list)))
         while True:
             data, addr = self.client_sock.recvfrom(4095)
@@ -58,9 +82,10 @@ class LCPClientSocket(object):
             if p._type == SERVER_PROBE:
                 continue
             print "Client received response", data
+            break
         return data
 
 if __name__ == '__main__':
-    sock = LCPSocket(('127.0.0.1', 8888))
-    sock.bind(('127.0.0.1', 5005))
-    sock.listen()
+    sock = LCPClientSocket((sys.argv[1], 8888))
+    sock.bind(('localhost', 0))
+    sock.send("Hello Lambda!")
