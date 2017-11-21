@@ -42,6 +42,7 @@ class LCPSocket(object):
 
             packet = Packet(SERVER_PROBE)
             for client in clients:
+                print "Sending a probe to client", client
                 self.server_sock.sendto(packet.encode(), tuple(client))
 
 

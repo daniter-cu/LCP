@@ -75,8 +75,11 @@ class LCPClientSocket(object):
             time.sleep(.25)
             if not self.t.is_alive():
                 return
-        self.client_sock.sendto(packet.encode(), next(iter(self.server_list)))
+        target_addr = next(iter(self.server_list))
+        print target_addr
+        self.client_sock.sendto(packet.encode(), target_addr)
         while True:
+            print "data sent adn waiting for response"
             data, addr = self.client_sock.recvfrom(4095)
             p = Packet.decode(data)
             if p._type == SERVER_PROBE:
@@ -87,5 +90,12 @@ class LCPClientSocket(object):
 
 if __name__ == '__main__':
     sock = LCPClientSocket((sys.argv[1], 8888))
-    sock.bind(('localhost', 0))
-    sock.send("Hello Lambda!")
+    sock.bind(('0.0.0.0', 0))
+    try:
+        sock.send("Hello Lambda!")
+    except:
+        e = sys.exc_info()
+        print e
+        sock.before_exit(None)
+        raise
+    sock.before_exit(None)
