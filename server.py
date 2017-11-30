@@ -66,4 +66,5 @@ class LCPSocket(object):
 def lambda_handler(event, context):
     sock = LCPSocket((event['ip'], int(event['port'])))
     sock.bind(('0.0.0.0', 0))
-    sock.listen()
+    while True:
+        sock.listen()

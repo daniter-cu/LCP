@@ -42,6 +42,7 @@ class LCPClientSocket(object):
         self.gateway = gateway
         self.gthread = None
         self.server_list = set()
+        self.t = None
         # Create 2 sockets
         # gateway_sock -> Communicating with the gateway server
         # server_sock -> socket to get connections from client
@@ -64,10 +65,11 @@ class LCPClientSocket(object):
         # This should be done in a separate thread so it can continue to listen
         # for new events
         # Once that thread is kicked off we can start listening on the recv_port
-        self.t = GatewayThread(self.server_list, self.gateway, self.gateway_sock, self.recv_port)
-        self.t.start()
-        signal(SIGTERM, self.before_exit)
-        signal(SIGINT, self.before_exit)
+        if self.t is None:
+            self.t = GatewayThread(self.server_list, self.gateway, self.gateway_sock, self.recv_port)
+            self.t.start()
+            signal(SIGTERM, self.before_exit)
+            signal(SIGINT, self.before_exit)
 
         packet = Packet(CLIENT)
         packet.payload = msg
@@ -79,7 +81,7 @@ class LCPClientSocket(object):
         print target_addr
         self.client_sock.sendto(packet.encode(), target_addr)
         while True:
-            print "data sent adn waiting for response"
+            print "Request sent, waiting for response from server"
             data, addr = self.client_sock.recvfrom(4095)
             p = Packet.decode(data)
             if p._type == SERVER_PROBE:
@@ -94,8 +96,8 @@ if __name__ == '__main__':
     try:
         sock.send("Hello Lambda!")
     except:
-        e = sys.exc_info()
-        print e
+        print sys.exc_info()
         sock.before_exit(None)
-        raise
+    time.sleep(25)
+    sock.send("Hello Lambda!")
     sock.before_exit(None)

@@ -7,5 +7,5 @@ aws lambda create-function \
 --role arn:aws:iam::579493330882:role/service-role/testRole \
 --handler server.lambda_handler \
 --runtime python2.7 \
---timeout 30 \
+--timeout 250 \
 --profile adminuser 
