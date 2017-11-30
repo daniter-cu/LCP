@@ -13,6 +13,7 @@ class Gateway(object):
         self.servers_p2p = set()
 
     def run(self):
+        print "Gateway started..."
         sock = socket.socket(socket.AF_INET, # Internet
                               socket.SOCK_DGRAM) # UDP
         sock.bind((UDP_IP, UDP_PORT))
@@ -42,6 +43,7 @@ class Gateway(object):
         packet.add_payload(list(self.clients_p2p))
         for addr in self.servers_g:
             sock.sendto(packet.encode(), addr)
+        print "GATEWAY: Clients sent to servers"
         return
 
     def handle_server(self, packet, addr, sock):
@@ -59,6 +61,7 @@ class Gateway(object):
         packet.add_payload(list(self.servers_p2p))
         for addr in self.clients_g:
             sock.sendto(packet.encode(), addr)
+        print "GATEWAY: Servers sent to clients"
         return
 
 if __name__ == '__main__':

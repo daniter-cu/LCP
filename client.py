@@ -38,7 +38,8 @@ class GatewayThread(threading.Thread):
         print "Exiting client gateway thread"
 
 class LCPClientSocket(object):
-    def __init__(self, gateway):
+    def __init__(self, gateway, tcp=True):
+        self.tcp = tcp
         self.gateway = gateway
         self.gthread = None
         self.server_list = set()
@@ -47,7 +48,10 @@ class LCPClientSocket(object):
         # gateway_sock -> Communicating with the gateway server
         # server_sock -> socket to get connections from client
         self.gateway_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        self.client_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        if self.tcp:
+            self.client_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        else:
+            self.client_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.gateway_sock.setblocking(0)
 
     def bind(self, addr):
@@ -79,16 +83,25 @@ class LCPClientSocket(object):
                 return
         target_addr = next(iter(self.server_list))
         print target_addr
-        self.client_sock.sendto(packet.encode(), target_addr)
-        while True:
-            print "Request sent, waiting for response from server"
-            data, addr = self.client_sock.recvfrom(4095)
-            p = Packet.decode(data)
-            if p._type == SERVER_PROBE:
-                continue
-            print "Client received response", data
-            break
-        return data
+        if self.tcp:
+            self.client_sock.connect(target_addr)
+            self.client_sock.send(packet.encode())
+            while True:
+                print "Request sent, waiting for response from server"
+                data = self.client_sock.recv(4095)
+                print "Client received response", data
+                break
+        else:
+            self.client_sock.sendto(packet.encode(), target_addr)
+            while True:
+                print "Request sent, waiting for response from server"
+                data, addr = self.client_sock.recvfrom(4095)
+                p = Packet.decode(data)
+                if p._type == SERVER_PROBE:
+                    continue
+                print "Client received response", data
+                break
+            return data
 
 def lambda_handler(event, context):
     sock = LCPClientSocket((event['ip'], int(event['port'])))

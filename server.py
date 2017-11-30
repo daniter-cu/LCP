@@ -2,17 +2,23 @@ import socket
 import multiprocessing as mp
 from structs import *
 from signal import signal, SIGTERM
+import time
 
 
 class LCPSocket(object):
-    def __init__(self, gateway):
+    def __init__(self, gateway, tcp=False):
+        self.tcp = tcp
         self.gateway = gateway
         self.gthread = None
         # Create 2 sockets
         # gateway_sock -> Communicating with the gateway server
         # server_sock -> socket to get connections from client
         self.gateway_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        self.server_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        if tcp:
+            self.server_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            self.server_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        else:
+            self.server_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
     def bind(self, addr):
         self.server_sock.bind(addr)
@@ -40,13 +46,23 @@ class LCPSocket(object):
             packet = Packet.decode(data)
             clients = packet.payload
 
-            packet = Packet(SERVER_PROBE)
-            for client in clients:
-                print "Sending a probe to client", client
-                self.server_sock.sendto(packet.encode(), tuple(client))
+            if self.tcp:
+                for client in clients:
+                    print "Sending a probe to client", client
+                    tmp_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                    tmp_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+                    tmp_socket.bind(('0.0.0.0', self.recv_port))
+                    tmp_socket.settimeout(1)
+                    tmp_socket.connect(tuple(client))
+                    tmp_socket.settimeout(None)
+            else:
+                packet = Packet(SERVER_PROBE)
+                for client in clients:
+                    print "Sending a probe to client", client
+                    self.server_sock.sendto(packet.encode(), tuple(client))
 
 
-    def listen(self, backlog=10):
+    def listen(self, backlog=5):
         # Before we start listening we want to register with the gateway
         # This should be done in a separate thread so it can continue to listen
         # for new events
@@ -56,12 +72,23 @@ class LCPSocket(object):
             self.gthread.start()
             signal(SIGTERM, self.before_exit)
 
-        data, addr = self.server_sock.recvfrom(4096)
-        print "Server request:", data
-        packet = Packet(SERVER)
-        packet.payload = "Returning some stuffs"
-        self.server_sock.sendto(packet.encode(), addr)
-        return data
+        if self.tcp:
+            time.sleep(1)
+            self.server_sock.listen(1)
+            conn, addr = self.server_sock.accept()
+            data = conn.recv(4096)
+            print "Server request:", data
+            packet = Packet(SERVER)
+            packet.payload = "Returning some stuffs"
+            self.server_sock.send(packet.encode())
+            return data
+        else:
+            data, addr = self.server_sock.recvfrom(4096)
+            print "Server request:", data
+            packet = Packet(SERVER)
+            packet.payload = "Returning some stuffs"
+            self.server_sock.sendto(packet.encode(), addr)
+            return data
 
 def lambda_handler(event, context):
     sock = LCPSocket((event['ip'], int(event['port'])))
