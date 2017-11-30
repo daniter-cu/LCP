@@ -90,6 +90,17 @@ class LCPClientSocket(object):
             break
         return data
 
+def lambda_handler(event, context):
+    sock = LCPClientSocket((event['ip'], int(event['port'])))
+    sock.bind(('0.0.0.0', 0))
+    try:
+        sock.send("Hello Lambda!")
+    except:
+        print sys.exc_info()
+        sock.before_exit(None)
+    sock.before_exit(None)
+    return
+
 if __name__ == '__main__':
     sock = LCPClientSocket((sys.argv[1], 8888))
     sock.bind(('0.0.0.0', 0))

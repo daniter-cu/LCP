@@ -1,11 +1,11 @@
 #!/bin/bash -e
 
 aws lambda create-function \
---function-name lcpserver \
+--function-name lcpclient \
 --region us-west-2 \
---zip-file fileb://hello.zip \
+--zip-file fileb://client-package.zip \
 --role arn:aws:iam::579493330882:role/service-role/testRole \
---handler server.lambda_handler \
+--handler client.lambda_handler \
 --runtime python2.7 \
 --timeout 30 \
 --profile adminuser 
