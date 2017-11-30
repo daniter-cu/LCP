@@ -106,8 +106,8 @@ class LCPClientSocket(object):
         # self.accept_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
 
         self.connect_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.connect_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        self.connect_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
+        # self.connect_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        # self.connect_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
 
     def bind(self, addr):
         # self.accept_sock.bind(addr)
