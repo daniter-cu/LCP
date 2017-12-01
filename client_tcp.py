@@ -47,29 +47,6 @@ class GatewayThread(Thread):
             if len(servers) > 0:
                 self.callback(servers[0])
 
-#
-#
-# class AcceptThread(Thread):
-#     def __init__(self, accept_sock):
-#         self.accept_sock = accept_sock
-#
-#     def run(self):
-#         self.accept_sock.listen(1)
-#         self.accept_sock.settimeout(5)
-#         while not STOP.is_set():
-#             try:
-#                 self.conn, addr = self.accept_sock.accept()
-#             except socket.timeout:
-#                 continue
-#             else:
-#                 print "Accept connected!"
-#                 STOP.set()
-#             data = conn.recv(4096)
-#             print "Recieved request at server from accepted connection: ", data
-#             packet = Packet(SERVER)
-#             packet.payload = "Returning some stuffs"
-#             self.conn.send(packet.encode())
-
 class ConnectThread(Thread):
     def __init__(self, connect_sock, server):
         Thread.__init__(self)
