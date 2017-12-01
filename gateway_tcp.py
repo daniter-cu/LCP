@@ -3,6 +3,9 @@ import sys
 from structs import *
 from threading import Thread, Event, Lock
 import select
+from signal import signal, SIGTERM, SIGINT
+import time
+
 
 UDP_IP = "0.0.0.0"
 UDP_PORT = 8888
@@ -11,48 +14,55 @@ STOP = Event()
 
 class ConnectionThread(Thread):
     def __init__(self, gateway, conn, addr):
+        Thread.__init__(self)
         self.conn = conn
         self.gateway = gateway
         self.addr = addr
         self.UPDATE_SERVERS = Event()
         self.UPDATE_CLIENTS = Event()
+        self._type = None
 
     def run(self):
         while not STOP.is_set():
-            readable, _, exceptional = select.select([self.conn], [], [self.conn], 1)
+            readable, _, _ = select.select([self.conn], [], [], 1)
             if readable:
                 data = self.conn.recv(4096)
+                if len(data) == 0:
+                    time.sleep(1)
+                    continue
                 packet = Packet.decode(data)
                 if packet is None:
                     continue
                 if packet._type == CLIENT:
+                    self._type = CLIENT
                     self.handle_client(packet)
                     with self.gateway.thread_lock:
                         for t in self.gateway.threads:
                             t.UPDATE_SERVERS.set()
                 if packet._type == SERVER:
+                    self._type = SERVER
                     self.handle_server(packet)
                     with self.gateway.thread_lock:
                         for t in self.gateway.threads:
                             t.UPDATE_CLIENTS.set()
-            if self.UPDATE_SERVERS.is_set():
+            if self.UPDATE_SERVERS.is_set() and self._type == SERVER:
                 self.update_servers()
                 self.UPDATE_SERVERS.clear()
-            if self.UPDATE_CLIENTS.is_set():
+            if self.UPDATE_CLIENTS.is_set() and self._type == CLIENT:
                 self.update_clients()
                 self.UPDATE_CLIENTS.clear()
 
     def update_clients(self):
         packet = Packet(GATEWAY)
-        packet.add_payload(list(self.gateway.clients_p2p))
-        self.conn.send(packet.encode())
-        print "GATEWAY: Clients sent to servers"
-
-    def update_servers(self):
-        packet = Packet(GATEWAY)
         packet.add_payload(list(self.gateway.servers_p2p))
         self.conn.send(packet.encode())
         print "GATEWAY: Servers sent to clients"
+
+    def update_servers(self):
+        packet = Packet(GATEWAY)
+        packet.add_payload(list(self.gateway.clients_p2p))
+        self.conn.send(packet.encode())
+        print "GATEWAY: Clients sent to servers"
 
     def handle_client(self, packet):
         print "Adding client", self.addr
@@ -96,8 +106,9 @@ class Gateway(object):
 
         while True:
             conn, addr = sock.accept()
-            t = ConnectThread( self, conn, addr )
-            threads.append(t)
+            t = ConnectionThread( self, conn, addr )
+            with self.thread_lock:
+                self.threads.append(t)
             t.start()
 
     def before_exit(self, *args):

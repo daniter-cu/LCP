@@ -26,7 +26,8 @@ class GatewayThread(Thread):
         print "TCP Server sending ID to Gateway"
         packet = Packet('CLIENT')
         packet.payload = ('localhost', self.recv_port)
-        self.gateway_sock.sendto(packet.encode(), self.gateway)
+        self.gateway_sock.connect(self.gateway)
+        self.gateway_sock.send(packet.encode())
 
         while not STOP.is_set():
             try:
@@ -37,7 +38,7 @@ class GatewayThread(Thread):
             if ready[0]:
                 try:
                     print "TCP Client reading from gateway"
-                    data, _ = self.gateway_sock.recvfrom(4096)
+                    data = self.gateway_sock.recv(4096)
                 except:
                     raise
             print "TCP Client received server list from Gateway"
@@ -74,29 +75,16 @@ class LCPClientSocket(object):
         self.gateway = gateway
         self.gthread = None
         # Create 2 sockets
-        # gateway_sock -> Communicating with the gateway server
-        # server_sock -> socket to get connections from client
-        self.gateway_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-
-        # self.accept_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        # self.accept_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        # self.accept_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
-
+        self.gateway_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.connect_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        # self.connect_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        # self.connect_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
 
     def bind(self, addr):
-        # self.accept_sock.bind(addr)
         self.connect_sock.bind( (addr[0], 0) )
-        # self.accept_recv_port = self.server_sock.getsockname()[1]# Store this to communicate to gateway
         self.connect_recv_port = self.connect_sock.getsockname()[1]# Store this to communicate to gateway
         print "Client thread adding rcv_port", self.connect_recv_port
 
     def _trigger_connection(self, client):
-        # self.accept_thread = AcceptThread(self.accept_sock)
         self.connect_thread = ConnectThread(self.connect_sock, client)
-        # self.accept_thread.start()
         self.connect_thread.start()
         threads = [ self.connect_thread ] # self.accept_thread,
         while len(threads) > 0:
@@ -125,7 +113,6 @@ class LCPClientSocket(object):
     def before_exit(self, *args):
         STOP.set()
         self.gateway_thread.join()
-        #self.accept_thread.join()
         self.connect_thread.join()
         sys.exit(-1)
 

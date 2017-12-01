@@ -26,9 +26,9 @@ class GatewayThread(Thread):
         print "TCP Server sending ID to Gateway"
         packet = Packet('SERVER')
         packet.payload = ('localhost', self.recv_port)
-        self.gateway_sock.sendto(packet.encode(), self.gateway)
+        self.gateway_sock.connect(self.gateway)
+        self.gateway_sock.send(packet.encode())
 
-        print STOP
         while not STOP.is_set():
             try:
                 print "TCP Server waiting on gateway"
@@ -38,11 +38,14 @@ class GatewayThread(Thread):
             if ready[0]:
                 try:
                     print "TCP Server reading from gateway"
-                    data, _ = self.gateway_sock.recvfrom(4096)
+                    data = self.gateway_sock.recv(4096)
                 except:
                     return
                 else:
                     print "TCP Server received clients list from Gateway"
+                    print "###################"
+                    print data
+                    print "###################"
                     packet = Packet.decode(data)
                     clients = packet.payload
 
@@ -59,12 +62,18 @@ class ConnectThread(Thread):
     def run(self):
         while not STOP.is_set():
             try:
+                print "Trying to establish connection from Server"
+                print tuple(self.client)
                 self.connect_sock.connect(tuple(self.client))
-            except socket.error:
-                continue
+                print "Connection at server should succeed"
+            except socket.error as e:
+                print e
+                print "[BAD] Some kind of socket error on Server"
+                return
             else:
                 print "connected from --- success!"
                 STOP.set()
+        print "Got connected on server, trying ot read data"
         data = self.connect_sock.recv(4096)
         print "Recieved request at server from accepted connection: ", data
         packet = Packet(SERVER)
@@ -77,29 +86,17 @@ class LCPSocket(object):
         self.gateway = gateway
         self.gthread = None
         # Create 2 sockets
-        # gateway_sock -> Communicating with the gateway server
-        # server_sock -> socket to get connections from client
-        self.gateway_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-
-        # self.accept_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        # self.accept_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        # self.accept_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
-
+        self.gateway_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.connect_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        # self.connect_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        # self.connect_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
+
 
     def bind(self, addr):
-        # self.accept_sock.bind(addr)
         self.connect_sock.bind( (addr[0], 0) )
-        #self.accept_recv_port = self.server_sock.getsockname()[1]# Store this to communicate to gateway
         self.connect_recv_port = self.connect_sock.getsockname()[1]# Store this to communicate to gateway
         print "Server thread adding rcv_port", self.connect_recv_port
 
     def _trigger_connection(self, client):
-        # self.accept_thread = AcceptThread(self.accept_sock)
         self.connect_thread = ConnectThread(self.connect_sock, client)
-        # self.accept_thread.start()
         self.connect_thread.start()
         threads = [ self.connect_thread ] # self.accept_thread,
         while len(threads) > 0:

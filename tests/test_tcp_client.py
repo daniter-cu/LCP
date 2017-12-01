@@ -6,7 +6,7 @@ sys.path.append(path +"/../")
 import multiprocessing
 import time
 
-from gateway import Gateway, UDP_PORT
+from gateway_tcp import Gateway, UDP_PORT
 from structs import *
 from server_tcp import *
 from client_tcp import *
