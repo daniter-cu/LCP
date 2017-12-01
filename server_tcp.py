@@ -143,7 +143,7 @@ class LCPSocket(object):
         signal(SIGTERM, self.before_exit)
         signal(SIGINT, self.before_exit)
 
-        while not STOP.is_set():
+        while True:
             time.sleep(1)
 
     def before_exit(self, *args):
