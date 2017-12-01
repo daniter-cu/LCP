@@ -28,7 +28,7 @@ class ConnectionThread(Thread):
             if readable:
                 data = self.conn.recv(4096)
                 if len(data) == 0:
-                    time.sleep(1)
+                    time.sleep(0.1)
                     continue
                 packet = Packet.decode(data)
                 if packet is None:
