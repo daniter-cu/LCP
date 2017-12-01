@@ -41,12 +41,13 @@ class GatewayThread(Thread):
                     data, _ = self.gateway_sock.recvfrom(4096)
                 except:
                     return
-            print "TCP Server received clients list from Gateway"
-            packet = Packet.decode(data)
-            clients = packet.payload
+                else:
+                    print "TCP Server received clients list from Gateway"
+                    packet = Packet.decode(data)
+                    clients = packet.payload
 
-            for client in clients:
-                self.callback(client)
+                    for client in clients:
+                        self.callback(client)
 
 
 # class AcceptThread(Thread):
