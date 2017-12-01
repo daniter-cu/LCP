@@ -7,6 +7,8 @@ import sys
 import threading
 import warnings
 
+from lcp import LCPClientSocket
+
 try:
     import ssl
     ssl_available = True
@@ -440,7 +442,8 @@ class Connection(object):
                  socket_keepalive=False, socket_keepalive_options=None,
                  retry_on_timeout=False, encoding='utf-8',
                  encoding_errors='strict', decode_responses=False,
-                 parser_class=DefaultParser, socket_read_size=65536):
+                 parser_class=DefaultParser, socket_read_size=65536,
+                 lcp=True):
         self.pid = os.getpid()
         self.host = host
         self.port = int(port)
@@ -453,6 +456,7 @@ class Connection(object):
         self.retry_on_timeout = retry_on_timeout
         self.encoder = Encoder(encoding, encoding_errors, decode_responses)
         self._sock = None
+        self.sock = None
         self._parser = parser_class(socket_read_size=socket_read_size)
         self._description_args = {
             'host': self.host,
@@ -460,6 +464,7 @@ class Connection(object):
             'db': self.db,
         }
         self._connect_callbacks = []
+        self.lcp = lcp
 
     def __repr__(self):
         return self.description_format % self._description_args
@@ -500,6 +505,15 @@ class Connection(object):
         # is for pubsub channel/pattern resubscription
         for callback in self._connect_callbacks:
             callback(self)
+
+    def connect_lcp(self, command):
+        "Connects to a Lambda-hosted Redis server"
+        self.sock = LCPClientSocket((self.host, self.port))
+        self.sock.bind(('0.0.0.0', 0))
+        self.sock.connect_and_send(command)
+        self._sock = self.sock.connect_sock
+        self.on_connect()
+        print "Redis client connected to socket and sent first data"
 
     def _connect(self):
         "Create a TCP socket connection"
@@ -582,7 +596,12 @@ class Connection(object):
     def send_packed_command(self, command):
         "Send an already packed command to the Redis server"
         if not self._sock:
-            self.connect()
+            if self.lcp:
+                # FIXME Look for exceptions
+                self.connect_lcp(command[0])
+                return
+            else:
+                self.connect()
         try:
             if isinstance(command, str):
                 command = [command]

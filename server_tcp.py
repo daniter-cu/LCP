@@ -62,23 +62,26 @@ class ConnectThread(Thread):
     def run(self):
         while not STOP.is_set():
             try:
-                print "Trying to establish connection from Server"
+                print "Server trying to establish connection"
                 print tuple(self.client)
                 self.connect_sock.connect(tuple(self.client))
-                print "Connection at server should succeed"
             except socket.error as e:
                 print e
                 print "[BAD] Some kind of socket error on Server"
                 return
             else:
-                print "connected from --- success!"
+                print "Server connection succeeded"
                 STOP.set()
-        print "Got connected on server, trying ot read data"
-        data = self.connect_sock.recv(4096)
-        print "Recieved request at server from accepted connection: ", data
-        packet = Packet(SERVER)
-        packet.payload = "Returning some stuffs"
-        self.connect_sock.send(packet.encode())
+
+        while True:
+            data = self.connect_sock.recv(4096)
+            print "Server received request: ", data
+            packet = Packet(SERVER)
+            packet.payload = "Returning some stuff"
+
+            # Adding '\r\n' here so that the packet is recognized as
+            # Redis packet.
+            self.connect_sock.send(packet.encode() + '\r\n')
 
 class LCPSocket(object):
     def __init__(self, gateway, tcp=True):
@@ -109,12 +112,14 @@ class LCPSocket(object):
                     threads.remove(thread)
 
     def listen(self, backlog=5):
-        # Before we start listening we want to register with the gateway
+        # Before we start listening we want to register with the gateway.
         # This should be done in a separate thread so it can continue to listen
-        # for new events
-        # Once that thread is kicked off we can start listening on the recv_port
-
-        self.gateway_thread = GatewayThread(self.gateway, self.gateway_sock, self.connect_recv_port, self._trigger_connection)
+        # for new events. Once that thread is kicked off we can start
+        # listening on the recv_port.
+        self.gateway_thread = GatewayThread(self.gateway,
+                                            self.gateway_sock,
+                                            self.connect_recv_port,
+                                            self._trigger_connection)
         self.gateway_thread.start()
         signal(SIGTERM, self.before_exit)
         signal(SIGINT, self.before_exit)
@@ -128,6 +133,7 @@ class LCPSocket(object):
         #self.accept_thread.join()
         self.connect_thread.join()
         sys.exit(-1)
+
 
 def lambda_handler(event, context):
     sock = LCPSocket((event['ip'], int(event['port'])))
