@@ -20,8 +20,6 @@ class GatewayThread(Thread):
         '''
         # 1. Tell the gateway who you are
         # 2. Get all server from gateway
-        # 3. send all clients a packet from recv_port
-        # 4. monitor gateway for new events
         '''
         print "TCP Server sending ID to Gateway"
         packet = Packet('CLIENT')
@@ -58,6 +56,8 @@ class LCPClientSocket(object):
         self.gthread = None
         self.server_list = None
         self.socket_list = None
+        #FIXME temporary for test reasons
+        self.flag = False
 
         # Lock until we get server list
         STOP.clear()
@@ -77,9 +77,27 @@ class LCPClientSocket(object):
 
     def get_socket(self, key):
         STOP.wait()
-        if self.socket_list[0] is not None:
+
+        # FIXME temp
+        if self.flag:
+            key = 1
+        else:
+            key = 0
+
+        if self.socket_list[key] is not None:
+            # FIXME temp
+            if key == 1:
+                self.flag = False
+            else:
+                self.flag = True
             print "Using existing connection"
-            return self.socket_list[0]
+            return self.socket_list[key]
+
+        # FIXME temp
+        if key == 1:
+            self.flag = False
+        else:
+            self.flag = True
 
         print "Connecting for the first time"
         connect_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -89,6 +107,6 @@ class LCPClientSocket(object):
         # Set SO_REUSEPORT
         connect_sock.setsockopt(socket.SOL_SOCKET, 15, 1)
         connect_sock.bind(('0.0.0.0', self.connect_port))
-        connect_sock.connect(tuple(self.server_list[0]))
-        self.socket_list[0] = connect_sock
+        connect_sock.connect(tuple(self.server_list[key]))
+        self.socket_list[key] = connect_sock
         return connect_sock
