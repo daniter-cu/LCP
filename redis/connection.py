@@ -272,9 +272,9 @@ class PythonParser(BaseParser):
 
     def on_disconnect(self):
         "Called when the socket disconnects"
-        if self._sock is not None:
-            self._sock.close()
-            self._sock = None
+        # if self._sock is not None:
+        #    self._sock.close()
+        #    self._sock = None
         if self._buffer is not None:
             self._buffer.close()
             self._buffer = None
@@ -454,11 +454,13 @@ class Connection(object):
         self.socket_connect_timeout = socket_connect_timeout or socket_timeout
         self.socket_keepalive = socket_keepalive
         self.socket_keepalive_options = socket_keepalive_options or {}
+        self.socket_read_size = socket_read_size
         self.retry_on_timeout = retry_on_timeout
         self.encoder = Encoder(encoding, encoding_errors, decode_responses)
         self._sock = None
-        self.sock = None
-        self._parser = parser_class(socket_read_size=socket_read_size)
+        self.lcp_sock = None
+        self.parser_class = parser_class
+        self._parser = None
         self._description_args = {
             'host': self.host,
             'port': self.port,
@@ -509,12 +511,11 @@ class Connection(object):
 
     def connect_lcp(self, command):
         "Connects to a Lambda-hosted Redis server"
-        self.sock = LCPClientSocket((self.host, self.port))
-        self.sock.bind(('0.0.0.0', 0))
-        self.sock.connect_and_send(command)
-        self._sock = self.sock.connect_sock
+        if not self.lcp_sock:
+            self.lcp_sock = LCPClientSocket((self.host, self.port))
+        self._sock = self.lcp_sock.get_socket('a')
+        self._parser = self.parser_class(socket_read_size=self.socket_read_size)
         self.on_connect()
-        print "Redis client connected to socket and sent first data"
 
     def _connect(self):
         "Create a TCP socket connection"
@@ -597,18 +598,16 @@ class Connection(object):
     def send_packed_command(self, command):
         "Send an already packed command to the Redis server"
         print "Sending packed command ", command
-        if not self._sock:
-            if self.lcp:
-                # FIXME Look for exceptions
-                self.connect_lcp(command[0])
-                return
-            else:
+        if self.lcp:
+            self.connect_lcp(command)
+        else:
+            if not self._sock:
                 self.connect()
         try:
             if isinstance(command, str):
                 command = [command]
             for item in command:
-                self._sock.sendall(item)
+                    self._sock.sendall(item)
         except socket.timeout:
             self.disconnect()
             raise TimeoutError("Timeout writing to socket")
