@@ -1,3 +1,7 @@
+import uuid
+import redis
+import subprocess
+
 import socket
 from structs import *
 from signal import signal, SIGTERM, SIGINT
@@ -72,16 +76,29 @@ class ConnectThread(Thread):
             else:
                 print "Server connection succeeded"
                 STOP.set()
+        print "Got connected on server, trying ot read data"
 
-        while True:
-            data = self.connect_sock.recv(4096)
-            print "Server received request: ", data
-            packet = Packet(SERVER)
-            packet.payload = "Returning some stuff"
+	#while not STOP.is_set():
+	data = self.connect_sock.recv(8192)
+        print "Recieved request at server from accepted connection: ", data
 
-            # Adding '\r\n' here so that the packet is recognized as
-            # Redis packet.
-            self.connect_sock.send(packet.encode() + '\r\n')
+	redis_sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) 
+	print "***trying to connect to redis server"
+	server_address = '/tmp/redis.sock'
+	try:
+	    redis_sock.connect(server_address)
+	except socket.error, msg:
+            print >>sys.stderr, msg
+            sys.exit(1)
+
+	print "***connected to redis server"
+	redis_sock.send(data)
+	response = redis_sock.recv(8192)
+
+	packet = Packet(SERVER)
+	#packet.payload = "Returning some stuffs"
+	packet.payload = response
+        self.connect_sock.send(packet.encode())
 
 class LCPSocket(object):
     def __init__(self, gateway, tcp=True):
@@ -136,6 +153,7 @@ class LCPSocket(object):
 
 
 def lambda_handler(event, context):
+    subprocess.Popen(['./redis-server', './redis.conf'])
     sock = LCPSocket((event['ip'], int(event['port'])))
     sock.bind(('0.0.0.0', 0))
     sock.listen()
