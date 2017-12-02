@@ -107,12 +107,13 @@ class ConnectThread(Thread):
 	'''
 	STOP.clear()
         while not STOP.is_set():
-	    data = self.connect_sock.recv(4096)
+	    data = self.connect_sock.recv(1048576)
             print "Recieved client request at server from accepted connection: ", data	
-	    d = json.loads(data)
+	    #d = json.loads(data)
+	    #data = d["PAYLOAD"]
 	    #print "request from client: " + d["PAYLOAD"]
-	    redis_sock.sendall(d["PAYLOAD"])
-	    response = redis_sock.recv(4096)
+	    redis_sock.sendall(data)
+	    response = redis_sock.recv(1048576)
 	    packet = Packet(SERVER)
  	    packet.payload = response
 	    print "response from redis server: " + response
