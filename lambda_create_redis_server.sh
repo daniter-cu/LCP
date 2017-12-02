@@ -5,6 +5,6 @@ aws lambda create-function \
 --region us-west-2 \
 --zip-file fileb://hello.zip \
 --role arn:aws:iam::562930434285:role/pywren_exec_role_1 \
---handler server_tcp.lambda_handler \
+--handler redis_server.lambda_handler \
 --runtime python2.7 \
 --timeout 30 
