@@ -1,3 +1,6 @@
+import subprocess
+import json
+
 import socket
 from structs import *
 from signal import signal, SIGTERM, SIGINT
@@ -74,11 +77,46 @@ class ConnectThread(Thread):
                 print "connected from --- success!"
                 STOP.set()
         print "Got connected on server, trying ot read data"
-        data = self.connect_sock.recv(4096)
-        print "Recieved request at server from accepted connection: ", data
+
+
+        redis_sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        print ">>> trying to connect to redis server"
+        server_address = '/tmp/redis.sock'
+        try:
+            redis_sock.connect(server_address)
+        except socket.error, msg:
+            print >>sys.stderr, msg
+            sys.exit(1)
+        print ">>> connected to redis server"
+
+	''' 	
+	# testing connection with redis server
+	redis_sock.sendall('*1\r\n$4\r\nping\r\n')
+	data = redis_sock.recv(4096)
+	print "ping response: " + data
+	redis_sock.sendall('*3\r\n$3\r\nSET\r\n$5\r\nmykey\r\n$7\r\nmyvalue\r\n')
+	data = redis_sock.recv(4096)
+	print "set response: " + data
+	redis_sock.sendall('*2\r\n$3\r\nGET\r\n$5\r\nmykey\r\n')
+	data = redis_sock.recv(4096)
+	print "get response: " + data
+
         packet = Packet(SERVER)
         packet.payload = "Returning some stuffs"
-        self.connect_sock.send(packet.encode())
+	self.connect_sock.send(packet.encode())	
+	'''
+	STOP.clear()
+        while not STOP.is_set():
+	    data = self.connect_sock.recv(4096)
+            print "Recieved client request at server from accepted connection: ", data	
+	    d = json.loads(data)
+	    #print "request from client: " + d["PAYLOAD"]
+	    redis_sock.sendall(d["PAYLOAD"])
+	    response = redis_sock.recv(4096)
+	    packet = Packet(SERVER)
+ 	    packet.payload = response
+	    print "response from redis server: " + response
+            self.connect_sock.send(packet.encode())
 
 class LCPSocket(object):
     def __init__(self, gateway, tcp=True):
@@ -130,6 +168,19 @@ class LCPSocket(object):
         sys.exit(-1)
 
 def lambda_handler(event, context):
+    subprocess.Popen(['./redis-server', './redis.conf'])
+    '''
+    time.sleep(5)
+    redis_sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+    print ">>> trying to connect to redis server"
+    server_address = '/tmp/redis.sock'
+    try:
+        redis_sock.connect(server_address)
+    except socket.error, msg:
+        print >>sys.stderr, msg
+        sys.exit(1)
+    print ">>> connected to redis server"
+    '''
     sock = LCPSocket((event['ip'], int(event['port'])))
     sock.bind(('0.0.0.0', 0))
     sock.listen()
