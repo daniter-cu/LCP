@@ -108,16 +108,11 @@ class ConnectThread(Thread):
 	STOP.clear()
         while not STOP.is_set():
 	    data = self.connect_sock.recv(1048576)
-            print "Recieved client request at server from accepted connection: ", data	
-	    #d = json.loads(data)
-	    #data = d["PAYLOAD"]
-	    #print "request from client: " + d["PAYLOAD"]
+            print "Server received client request: ", data	
 	    redis_sock.sendall(data)
 	    response = redis_sock.recv(1048576)
-	    packet = Packet(SERVER)
- 	    packet.payload = response
-	    print "response from redis server: " + response
-            self.connect_sock.send(packet.encode())
+	    print "Response from Redis server: " + response
+            self.connect_sock.send(response)
 
 class LCPSocket(object):
     def __init__(self, gateway, tcp=True):

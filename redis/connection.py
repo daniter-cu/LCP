@@ -174,6 +174,7 @@ class SocketBuffer(object):
         try:
             while True:
                 data = recv(self._sock, socket_read_size)
+                print "_read_from_socket: ", data
                 # an empty string indicates the server shutdown the socket
                 if isinstance(data, bytes) and len(data) == 0:
                     raise socket.error(SERVER_CLOSED_CONNECTION_ERROR)
@@ -595,6 +596,7 @@ class Connection(object):
 
     def send_packed_command(self, command):
         "Send an already packed command to the Redis server"
+        print "Sending packed command ", command
         if not self._sock:
             if self.lcp:
                 # FIXME Look for exceptions
