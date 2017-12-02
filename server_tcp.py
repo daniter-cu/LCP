@@ -1,3 +1,7 @@
+import uuid
+import redis
+import subprocess
+
 import socket
 from structs import *
 from signal import signal, SIGTERM, SIGINT
@@ -74,10 +78,27 @@ class ConnectThread(Thread):
                 print "connected from --- success!"
                 STOP.set()
         print "Got connected on server, trying ot read data"
-        data = self.connect_sock.recv(4096)
+
+	#while not STOP.is_set():
+	data = self.connect_sock.recv(8192)
         print "Recieved request at server from accepted connection: ", data
-        packet = Packet(SERVER)
-        packet.payload = "Returning some stuffs"
+
+	redis_sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) 
+	print "***trying to connect to redis server"
+	server_address = '/tmp/redis.sock'
+	try:
+	    redis_sock.connect(server_address)
+	except socket.error, msg:
+            print >>sys.stderr, msg
+            sys.exit(1)
+
+	print "***connected to redis server"
+	redis_sock.send(data)
+	response = redis_sock.recv(8192)
+
+	packet = Packet(SERVER)
+	#packet.payload = "Returning some stuffs"
+	packet.payload = response
         self.connect_sock.send(packet.encode())
 
 class LCPSocket(object):
@@ -130,6 +151,7 @@ class LCPSocket(object):
         sys.exit(-1)
 
 def lambda_handler(event, context):
+    subprocess.Popen(['./redis-server', './redis.conf'])
     sock = LCPSocket((event['ip'], int(event['port'])))
     sock.bind(('0.0.0.0', 0))
     sock.listen()
