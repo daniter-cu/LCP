@@ -2,7 +2,8 @@ from redis import Redis
 
 
 def lambda_handler(event, context):
-    redis = Redis(event['ip'], int(event['port']))
+    redis = Redis(event['ip'], int(event['port']),
+                  bind_port=int(event['bind_port']))
     a = redis.set('foo', 'a')
     print "Redis set reply: ", a
     a = redis.set('boo', 'b')

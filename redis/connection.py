@@ -444,7 +444,7 @@ class Connection(object):
                  retry_on_timeout=False, encoding='utf-8',
                  encoding_errors='strict', decode_responses=False,
                  parser_class=DefaultParser, socket_read_size=65536,
-                 lcp=True):
+                 lcp=True, bind_port=50000):
         self.pid = os.getpid()
         self.host = host
         self.port = int(port)
@@ -468,6 +468,7 @@ class Connection(object):
         }
         self._connect_callbacks = []
         self.lcp = lcp
+        self.bind_port = bind_port
 
     def __repr__(self):
         return self.description_format % self._description_args
@@ -512,7 +513,8 @@ class Connection(object):
     def connect_lcp(self, command):
         "Connects to a Lambda-hosted Redis server"
         if not self.lcp_sock:
-            self.lcp_sock = LCPClientSocket((self.host, self.port))
+            self.lcp_sock = LCPClientSocket((self.host, self.port),
+                                            self.bind_port)
         # Get key for GET or SET
         key = command[0][17:command[0][17:].find('\r\n') + 17]
         self._sock = self.lcp_sock.get_socket(key)

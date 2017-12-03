@@ -496,7 +496,7 @@ class StrictRedis(object):
                  decode_responses=False, retry_on_timeout=False,
                  ssl=False, ssl_keyfile=None, ssl_certfile=None,
                  ssl_cert_reqs=None, ssl_ca_certs=None,
-                 max_connections=None):
+                 max_connections=None, bind_port=None):
         if not connection_pool:
             if charset is not None:
                 warnings.warn(DeprecationWarning(
@@ -528,6 +528,7 @@ class StrictRedis(object):
                 kwargs.update({
                     'host': host,
                     'port': port,
+                    'bind_port': bind_port,
                     'socket_connect_timeout': socket_connect_timeout,
                     'socket_keepalive': socket_keepalive,
                     'socket_keepalive_options': socket_keepalive_options,
