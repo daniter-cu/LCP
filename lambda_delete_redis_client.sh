@@ -2,4 +2,4 @@
 
 aws lambda delete-function \
 --function-name redisclient \
---region us-west-1
+--region us-west-2
