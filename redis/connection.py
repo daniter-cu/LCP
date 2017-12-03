@@ -513,7 +513,9 @@ class Connection(object):
         "Connects to a Lambda-hosted Redis server"
         if not self.lcp_sock:
             self.lcp_sock = LCPClientSocket((self.host, self.port))
-        self._sock = self.lcp_sock.get_socket('a')
+        # Get key for GET or SET
+        key = command[0][17:command[0][17:].find('\r\n') + 17]
+        self._sock = self.lcp_sock.get_socket(key)
         self._parser = self.parser_class(socket_read_size=self.socket_read_size)
         self.on_connect()
 
