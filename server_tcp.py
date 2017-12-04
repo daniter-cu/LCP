@@ -62,8 +62,6 @@ class ConnectThread(Thread):
     def run(self):
         while not STOP.is_set():
             try:
-                print "Server trying to establish connection"
-                print tuple(self.client)
                 self.connect_sock.connect(tuple(self.client))
             except socket.error as e:
                 print e
@@ -126,7 +124,6 @@ class LCPSocket(object):
     def before_exit(self, *args):
         STOP.set()
         self.gateway_thread.join()
-        #self.accept_thread.join()
         self.connect_thread.join()
         sys.exit(-1)
 
