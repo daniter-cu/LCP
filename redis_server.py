@@ -133,9 +133,39 @@ class ConnectThread(Thread):
 	STOP.clear()
         while not STOP.is_set():
 	    data = connect_sock.recv(1048576)
+            if len(data) == 0:
+                return
+            rem = self.parse_data(data)
+            while rem > 0:
+                temp_data = connect_sock.recv(1048576)
+                data += temp_data
+                rem -= len(temp_data)
 	    redis_sock.sendall(data)
 	    response = redis_sock.recv(1048576)
-        connect_sock.send(response)
+            rem = self.parse_response(data[8] == 'G', response)
+            while rem > 0:
+	        temp_response = redis_sock.recv(1048576)
+	        response += temp_response
+                rem -= len(temp_response)
+            connect_sock.send(response)
+
+    def parse_response(self, is_get, response):
+        if not is_get:
+            return 0
+        value_length_end = response.find('\r\n')
+        value_length = int(response[1:value_length_end])
+        return value_length_end + value_length + 4 - len(response)
+
+    def parse_data(self, data):
+        if data[8] == 'G':
+            return 0
+        first_r_n = 14 + data[14:].find('\r\n')
+        second_r_n = first_r_n + 1 + data[first_r_n + 1:].find('\r\n')
+        value_size_start = second_r_n + 3
+        value_size_end = value_size_start + data[value_size_start:].find('\r\n')
+        value_size = int(data[value_size_start:value_size_end])
+        return value_size_end + 4 + value_size - len(data)
+
 
 class LCPSocket(object):
     def __init__(self, gateway, connect_port, tcp=True):

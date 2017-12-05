@@ -609,7 +609,7 @@ class Connection(object):
             if isinstance(command, str):
                 command = [command]
             for item in command:
-                    self._sock.sendall(item)
+                self._sock.sendall(item)
         except socket.timeout:
             self.disconnect()
             raise TimeoutError("Timeout writing to socket")
