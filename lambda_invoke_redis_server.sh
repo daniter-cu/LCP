@@ -6,4 +6,5 @@ aws lambda invoke \
 --region us-west-2 \
 --log-type Tail \
 --payload '{"ip":"52.53.149.33", "port":"8888", "connect_port":"'$1'"}' \
+--cli-read-timeout 300 \
 outputfile.txt > $2 2>&1
