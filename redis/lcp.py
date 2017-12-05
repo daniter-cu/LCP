@@ -78,7 +78,6 @@ class LCPClientSocket(object):
 
         index = abs(hash(key)) % len(self.server_list)
         if self.socket_list[index] is not None:
-            print "Using existing connection"
             return self.socket_list[index]
 
         print "Connecting for the first time"

@@ -5,5 +5,6 @@ aws lambda invoke \
 --function-name redisserver \
 --region us-west-2 \
 --log-type Tail \
---payload '{"ip":"54.212.247.168", "port":"8888", "connect_port":"'$1'"}' \
+--payload '{"ip":"52.53.149.33", "port":"8888", "connect_port":"'$1'"}' \
+--profile adminuser \
 outputfile.txt > $2 2>&1

@@ -36,7 +36,6 @@ class GatewayThread(Thread):
 
         while not STOP.is_set():
             try:
-                print "TCP Server waiting on gateway"
                 ready = select.select([self.gateway_sock], [], [], 1)
             except:
                 raise
@@ -56,7 +55,7 @@ class GatewayThread(Thread):
 
                     for client in clients:
                         if client not in self.clients_connected:
-                            print "handling client " + str(client[0]) 
+                            print "handling client " + str(client[0])
                             connect_thread = ConnectThread(client, self.connect_port)
                             connect_thread.start()
                             self.threads.append(connect_thread)
@@ -115,7 +114,7 @@ class ConnectThread(Thread):
             sys.exit(1)
         print ">>> connected to redis server"
 
-	''' 	
+	'''
 	# testing connection with redis server
 	redis_sock.sendall('*1\r\n$4\r\nping\r\n')
 	data = redis_sock.recv(4096)
@@ -129,16 +128,14 @@ class ConnectThread(Thread):
 
         packet = Packet(SERVER)
         packet.payload = "Returning some stuffs"
-	self.connect_sock.send(packet.encode())	
+	self.connect_sock.send(packet.encode())
 	'''
 	STOP.clear()
         while not STOP.is_set():
 	    data = connect_sock.recv(1048576)
-            print "Server received client request: ", data	
 	    redis_sock.sendall(data)
 	    response = redis_sock.recv(1048576)
-	    print "Response from Redis server: " + response
-            connect_sock.send(response)
+        connect_sock.send(response)
 
 class LCPSocket(object):
     def __init__(self, gateway, connect_port, tcp=True):
