@@ -23,7 +23,7 @@ class Packet(object):
 
     def encode(self):
         try:
-            json_packet = json.dumps({TYPE: self._type, PAYLOAD:self.payload, "NOTES":time.time(), "OTHERNOTES":"DANITER", "MOREMORE":str(threading.current_thread())})
+            json_packet = json.dumps({TYPE: self._type, PAYLOAD:self.payload})
         except ValueError:
             print "[FATAL] Failed to dump packet to json"
             return None
