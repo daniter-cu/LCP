@@ -30,7 +30,7 @@ class GatewayThread(Thread):
         # We only communicate with the gateway once
         while not STOP.is_set():
             try:
-                print "TCP Client waiting on gateway"
+                #print "TCP Client waiting on gateway"
                 ready = select.select([self.gateway_sock], [], [], 1)
             except:
                 return
@@ -40,12 +40,12 @@ class GatewayThread(Thread):
                     data, _ = self.gateway_sock.recvfrom(4096)
                 except:
                     raise
-            print "TCP Client received server list from Gateway"
-            packet = Packet.decode(data)
-            servers = packet.payload
+                print "TCP Client received server list from Gateway"
+                packet = Packet.decode(data)
+                servers = packet.payload
 
-            if len(servers) > 0:
-                self.lcp.add_server_list(servers)
+                if len(servers) > 0:
+                    self.lcp.add_server_list(servers)
 
 
 class LCPClientSocket(object):
@@ -67,6 +67,14 @@ class LCPClientSocket(object):
         self.gateway_thread = GatewayThread(self.gateway, self.gateway_sock,
                                             self.connect_port, self)
         self.gateway_thread.start()
+        signal(SIGTERM, self.before_exit)
+        signal(SIGINT, self.before_exit)
+
+    def before_exit(self, *args):
+        STOP.set()
+        self.gateway_thread.join()
+        self.connect_thread.join()
+        sys.exit(-1)
 
     def add_server_list(self, server_list):
         self.server_list = server_list

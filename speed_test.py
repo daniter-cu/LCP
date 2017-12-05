@@ -5,7 +5,7 @@ import time
 
 def do_read_test(size, data, redis):
     times = []
-    runs = 1
+    runs = 10
     key = "TESTKEY"
     redis.set(key, data)
     for i in xrange(runs):
@@ -18,7 +18,7 @@ def do_read_test(size, data, redis):
 
 def do_write_test(size, data, redis):
     times = []
-    runs = 1
+    runs = 10
     key = "TESTKEY"
     for i in xrange(runs):
         start = time.time()
@@ -33,15 +33,16 @@ def lambda_handler(event, context):
     a = redis.set('foo', 'a')
     foo = redis.get('foo')
     print "starting", time.time()
-    sizes = [1, 1024, 1024*10, 1024*100, 1024*1024, 1024*1024*10]#, 1024*1024*100]
+    sizes = [512]#[1024*10, 1024*100 ]#1024*1024, 1024*1024*10, 1024*1024*100]
     data = "a"*(sizes[-1])
     print "about to loop", time.time()
-    for s in sizes:
-        print "start loop", time.time()
-        do_read_test(s, data[:s], redis)
-        print "after read", time.time()
-        do_write_test(s, data[:s], redis)
-        print "after write", time.time()
+    while True:
+        for s in sizes:
+        #    print "start loop", time.time()
+            do_read_test(s, data[:s], redis)
+        #    print "after read", time.time()
+            do_write_test(s, data[:s], redis)
+        #    print "after write", time.time()
 
 
 if __name__=='__main__':
