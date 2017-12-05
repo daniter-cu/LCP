@@ -20,7 +20,7 @@ class Packet(object):
 
     def encode(self):
         try:
-            json_packet = json.dumps({TYPE: self._type, PAYLOAD:self.payload})
+            json_packet = json.dumps({TYPE: self._type, PAYLOAD:self.payload}) + "SPECIAL_END"
         except ValueError:
             print "[FATAL] Failed to dump packet to json"
             return None
@@ -28,6 +28,7 @@ class Packet(object):
 
     @staticmethod
     def decode(string_packet):
+        string_packet = string_packet.replace("SPECIAL_END", "")
         try:
             json_packet = json.loads(string_packet)
         except ValueError:

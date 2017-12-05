@@ -43,6 +43,10 @@ class GatewayThread(Thread):
                 try:
                     print "TCP Server reading from gateway"
                     data = self.gateway_sock.recv(4096)
+                    if len(data) == 0:
+                        continue
+                    while "SPECIAL_END" not in data:
+                        data += self.gateway_sock.recv(4096)
                 except:
                     return
                 else:
