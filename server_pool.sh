@@ -5,5 +5,5 @@
 for i in $(seq 0 $(($1-1)))
 do
 	#sh lambda_invoke_redis_server.sh $((6000+$i)) logs$i.txt &
-	sh lambda_invoke_redis_server.sh $((6000+$i))  
+	sh lambda_invoke_redis_server.sh $((6000+$i)) &
 done

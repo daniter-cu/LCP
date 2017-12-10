@@ -1,7 +1,7 @@
 #!/bin/bash -e
 
 aws lambda invoke \
---invocation-type Event \
+--invocation-type RequestResponse \
 --function-name redisclient_new \
 --region us-west-2 \
 --log-type Tail \
