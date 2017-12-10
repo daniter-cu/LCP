@@ -21,7 +21,7 @@ class GatewayThread(Thread):
         # 1. Tell the gateway who you are
         # 2. Get all server from gateway
         '''
-        print "TCP Server sending ID to Gateway"
+        #print "TCP Server sending ID to Gateway"
         packet = Packet('CLIENT')
         packet.payload = ('localhost', self.recv_port)
         self.gateway_sock.connect(self.gateway)
@@ -36,14 +36,20 @@ class GatewayThread(Thread):
                 return
             if ready[0]:
                 try:
-                    print "TCP Client reading from gateway"
+                    #print "TCP Client reading from gateway"
                     data, _ = self.gateway_sock.recvfrom(4096)
+                    if len(data) == 0:
+                        continue
+                    while "SPECIAL_END" not in data:
+                        data1, _ = self.gateway_sock.recvfrom(4096)
+			data += data1
                 except:
                     raise
-                print "TCP Client received server list from Gateway"
-                packet = Packet.decode(data)
+                #print "TCP Client received server list from Gateway"
+		packet = Packet.decode(data)
                 servers = packet.payload
-
+		
+		#print "TCP Client received n_servers = " + str(len(servers))
                 if len(servers) > 0:
                     self.lcp.add_server_list(servers)
 
@@ -83,12 +89,15 @@ class LCPClientSocket(object):
 
     def get_socket(self, key):
         STOP.wait()
-
+	
         index = abs(hash(key)) % len(self.server_list)
-        if self.socket_list[index] is not None:
+        #print "key = " + key 
+	#print "hash(key) = " + str(hash(key))
+	#print "index = " + str(index)
+	if self.socket_list[index] is not None:
             return self.socket_list[index]
 
-        print "Connecting for the first time"
+        #print "Connecting for the first time"
         connect_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         connect_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         connect_sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
@@ -97,5 +106,7 @@ class LCPClientSocket(object):
         connect_sock.setsockopt(socket.SOL_SOCKET, 15, 1)
         connect_sock.bind(('0.0.0.0', self.connect_port))
         connect_sock.connect(tuple(self.server_list[index]))
+	#print "connected to server "
+	#print tuple(self.server_list[index])
         self.socket_list[index] = connect_sock
         return connect_sock
