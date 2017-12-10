@@ -1,10 +1,11 @@
 #!/bin/bash -e
 
 aws lambda invoke \
---invocation-type RequestResponse \
---function-name redisserver \
+--invocation-type Event \
+--function-name redisserver_new \
 --region us-west-2 \
 --log-type Tail \
---payload '{"ip":"52.53.149.33", "port":"8888", "connect_port":"'$1'"}' \
---cli-read-timeout 300 \
-outputfile.txt > $2 2>&1
+--payload '{"ip":"54.212.247.168", "port":"8888", "connect_port":"'$1'"}' \
+--cli-read-timeout 400 \
+outputfile.txt
+#outputfile.txt > $2 2>&1

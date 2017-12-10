@@ -28,7 +28,7 @@ class GatewayThread(Thread):
         # 3. send all clients a packet from connect_port
         # 4. monitor gateway for new events
         '''
-        print "TCP Server sending ID to Gateway"
+        #print "TCP Server sending ID to Gateway"
         packet = Packet('SERVER')
         packet.payload = ('localhost', self.connect_port)
         self.gateway_sock.connect(self.gateway)
@@ -41,7 +41,7 @@ class GatewayThread(Thread):
                 raise
             if ready[0]:
                 try:
-                    print "TCP Server reading from gateway"
+                    #print "TCP Server reading from gateway"
                     data = self.gateway_sock.recv(4096)
                     if len(data) == 0:
                         continue
@@ -50,16 +50,16 @@ class GatewayThread(Thread):
                 except:
                     return
                 else:
-                    print "TCP Server received clients list from Gateway"
-                    print "###################"
-                    print data
-                    print "###################"
+                    #print "TCP Server received clients list from Gateway"
+                    #print "###################"
+                    #print data
+                    #print "###################"
                     packet = Packet.decode(data)
                     clients = packet.payload
 
                     for client in clients:
                         if client not in self.clients_connected:
-                            print "handling client " + str(client[0])
+                            #print "handling client " + str(client[0])
                             connect_thread = ConnectThread(client, self.connect_port)
                             connect_thread.start()
                             self.threads.append(connect_thread)
@@ -91,10 +91,10 @@ class ConnectThread(Thread):
                 #connect_sock.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
                 #connect_sock.setsockopt(socket.SOL_SOCKET, 15, 1)
                 connect_sock.bind(('0.0.0.0', self.connect_port))
-                print "Trying to establish connection from Serveri at port: " + str(self.connect_port)
-                print tuple(self.client)
+                #print "Trying to establish connection from Serveri at port: " + str(self.connect_port)
+                #print tuple(self.client)
                 connect_sock.connect(tuple(self.client))
-                print "Connection at server should succeed"
+                #print "Connection at server should succeed"
             except OSError as e:
                 print e
                 return
@@ -103,20 +103,20 @@ class ConnectThread(Thread):
                 print "[BAD] Some kind of socket error on Server"
                 return
             else:
-                print "connected from --- success!"
+                #print "connected from --- success!"
                 flag = 1
-        print "Got connected on server, trying ot read data"
-
+        #print "Got connected on server, trying ot read data"
+	print "Connected to " + str(self.client[1]) 
 
         redis_sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-        print ">>> trying to connect to redis server"
+        #print ">>> trying to connect to redis server"
         server_address = '/tmp/redis.sock'
         try:
             redis_sock.connect(server_address)
         except socket.error, msg:
             print >>sys.stderr, msg
             sys.exit(1)
-        print ">>> connected to redis server"
+        #print ">>> connected to redis server"
 
 	'''
 	# testing connection with redis server
@@ -178,7 +178,7 @@ class LCPSocket(object):
         self.gthread = None
         self.gateway_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.connect_port = connect_port
-        print "Server thread binding to connect_port", self.connect_port
+        #print "Server thread binding to connect_port", self.connect_port
 
     def _trigger_connection(self, client):
         self.connect_thread = ConnectThread(client, self.connect_port)
